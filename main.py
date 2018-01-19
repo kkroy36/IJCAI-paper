@@ -21,7 +21,6 @@ class GradientBoosting(object):
         self.data = None
         self.testPos = {}
         self.testNeg = {}
-        self.probabilisticKnowledgeFacts = {}
 
     def setTargets(self,targets):
         '''sets targets to learn'''
@@ -50,28 +49,30 @@ class GradientBoosting(object):
         bk = self.getModifiedBkFile(knowledgeModels)
         data.setBackground(bk)
         allExamples = list(data.pos.keys())+list(data.neg.keys())
-        for knowledgeModel in knowledgeModels:
-            self.probabilisticKnowledgeFacts[knowledgeModel] = {}
-            for example in allExamples:
+        for example in allExamples:
+            totalSumOfGradients = 0
+            for knowledgeModel in knowledgeModels:
                 if knowledgeModel.applies(data,example):
                     target = example.split('(')[0]
                     trees = knowledgeModel.clf.trees[target]
                     sumOfGradients = Boosting.computeSumOfGradients(example,trees,data)
                     probabilityOfExample = Utils.sigmoid(Boosting.logPrior+sumOfGradients)
-                    self.probabilisticKnowledgeFacts[knowledgeModel][example] = probabilityOfExample
                     if probabilityOfExample > 0.5:
-                        if example not in data.pos:
-                            data.addPos(example,target)
-                        if example in data.neg:
-                            data.removeNeg(example,target)
                         args = example[:-1].split('(')[1]
                         literalName = "knowledge"+str(knowledgeModel.ID)
                         data.addFact(literalName+'('+args+')')
-                    else:
-                        if example in data.pos:
-                            data.removePos(example,target)
-                        if example not in data.neg:
-                            data.addNeg(example,target)
+                    totalSumOfGradients += sumOfGradients
+            totalProbabilityOfExample = Utils.sigmoid(Boosting.logPrior+totalSumOfGradients)
+            if totalProbabilityOfExample > 0.5:
+                if example not in data.pos:
+                    data.addPos(example,target)
+                if example in data.neg:
+                    data.removeNeg(example,target)
+            else:
+                if example in data.pos:
+                    data.removePos(example,target)
+                if example not in data.neg:
+                    data.addNeg(example,target)
 
     def learn(self,knowledge=False,makeKnowledgeFacts=False,knowledgeModels=False):
         '''method to run gradient boosting'''
@@ -98,7 +99,7 @@ class GradientBoosting(object):
                 for clause in tree:
                     print(clause)
                     
-    def infer(self,knowledgeModels = False,bayesianEstimate = False):
+    def infer(self,knowledgeModels = False):
         '''performs testing'''
         for target in self.targets:
             testData = Utils.readTestData(target,self.regression)
