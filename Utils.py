@@ -32,6 +32,26 @@ class Data(object):
         '''returns the facts in the data'''
         return self.facts
 
+    def addPos(self,example,target):
+        '''adds a positive example'''
+        if example.split('(')[0] == target:
+            self.pos[example] = 0.5
+
+    def removePos(self,example,target):
+        '''removes a positive example'''
+        if example.split('(')[0] == target:
+            del self.pos[example]
+
+    def addNeg(self,example,target):
+        '''adds a negative example'''
+        if example.split('(')[0] == target:
+            self.neg[example] = -0.5
+
+    def removeNeg(self,example,target):
+        '''removes a negative example'''
+        if example.split('(')[0] == target:
+            del self.neg[example]
+
     def setPos(self,pos,target):
         '''set positive examples from pos list'''
         for example in pos:
