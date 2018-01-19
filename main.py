@@ -151,7 +151,7 @@ def main():
     knowledge1.clf.infer()
     #knowledge2 = Knowledge(2,"putdown(F):-on(F,H,Z),ontable(F,Z,table)",["putdown"],[])
     #second layer
-    clf = GradientBoosting()
+    clf = GradientBoosting(treeDepth = 4,trees = 2)
     clf.setTargets(["putdown"])
     clf.learn(makeKnowledgeFacts = True,knowledgeModels = [knowledge1])#,knowledge2])
     clf.infer(knowledgeModels = [knowledge1])#,knowledge2])
