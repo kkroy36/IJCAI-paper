@@ -32,20 +32,20 @@ class Data(object):
         '''returns the facts in the data'''
         return self.facts
 
-    def addPos(self,example,target):
+    def addPos(self,example,target,totalProbability):
         '''adds a positive example'''
         if example.split('(')[0] == target:
-            self.pos[example] = 0.5
+            self.pos[example] = totalProbability - 0.5
 
     def removePos(self,example,target):
         '''removes a positive example'''
         if example.split('(')[0] == target:
             del self.pos[example]
 
-    def addNeg(self,example,target):
+    def addNeg(self,example,target,totalProbability):
         '''adds a negative example'''
         if example.split('(')[0] == target:
-            self.neg[example] = -0.5
+            self.neg[example] = totalProbability - 0.5
 
     def removeNeg(self,example,target):
         '''removes a negative example'''

@@ -44,15 +44,18 @@ class GradientBoosting(object):
                 bk.append(knowledgeBk)
             return bk
 
-    def constructKnowledgeFacts(self,data,knowledgeModels):
+    def constructKnowledgeFacts(self,data,knowledgeModels,target):
         '''construct knowledge facts for 2nd layer'''
         bk = self.getModifiedBkFile(knowledgeModels)
         data.setBackground(bk)
+        data.setTarget(bk,target)
         allExamples = list(data.pos.keys())+list(data.neg.keys())
         for example in allExamples:
             totalSumOfGradients = 0
+            noKnowledgeApplies = True
             for knowledgeModel in knowledgeModels:
                 if knowledgeModel.applies(data,example):
+                    noKnowledgeApplies = False
                     target = example.split('(')[0]
                     trees = knowledgeModel.clf.trees[target]
                     sumOfGradients = Boosting.computeSumOfGradients(example,trees,data)
@@ -63,16 +66,20 @@ class GradientBoosting(object):
                         data.addFact(literalName+'('+args+')')
                     totalSumOfGradients += sumOfGradients
             totalProbabilityOfExample = Utils.sigmoid(Boosting.logPrior+totalSumOfGradients)
-            if totalProbabilityOfExample > 0.5:
+            if totalProbabilityOfExample > 0.5 and not noKnowledgeApplies:
                 if example not in data.pos:
-                    data.addPos(example,target)
+                    data.addPos(example,target,totalProbabilityOfExample)
+                elif example in data.pos:
+                    data.pos[example] = totalProbabilityOfExample - 0.5
                 if example in data.neg:
                     data.removeNeg(example,target)
-            else:
+            elif totalProbabilityOfExample < 0.5 and not noKnowledgeApplies:
                 if example in data.pos:
                     data.removePos(example,target)
                 if example not in data.neg:
-                    data.addNeg(example,target)
+                    data.addNeg(example,target,totalProbabilityOfExample)
+                elif example in data.neg:
+                    data.neg[example] = totalProbabilityOfExample - 0.5
 
     def learn(self,knowledge=False,makeKnowledgeFacts=False,knowledgeModels=False):
         '''method to run gradient boosting'''
@@ -85,7 +92,7 @@ class GradientBoosting(object):
                 data.adviceClauses[adviceClause]['preferred'] = knowledge.preferredTargets
                 data.adviceClauses[adviceClause]['nonPreferred'] = knowledge.nonPreferredTargets
             if knowledgeModels:
-                self.constructKnowledgeFacts(data,knowledgeModels)
+                self.constructKnowledgeFacts(data,knowledgeModels,target)
             trees = []
             for i in range(self.numberOfTrees):
                 print('='*20,"learning tree",str(i),'='*20)
@@ -104,7 +111,7 @@ class GradientBoosting(object):
         for target in self.targets:
             testData = Utils.readTestData(target,self.regression)
             if knowledgeModels:
-                self.constructKnowledgeFacts(testData,knowledgeModels)
+                self.constructKnowledgeFacts(testData,knowledgeModels,target)
             Boosting.performInference(testData,self.trees[target])
             self.testPos[target] = testData.pos
             self.testNeg[target] = testData.neg
@@ -141,12 +148,13 @@ class Knowledge(object):
 def main():
     '''main method'''
     knowledge1 = Knowledge(1,"putdown(F):-on(F,H,Z),ontable(F,Z,table)",["putdown"],[])
-    knowledge2 = Knowledge(2,"putdown(F):-on(F,H,Z),ontable(F,Z,table)",["putdown"],[])
+    knowledge1.clf.infer()
+    #knowledge2 = Knowledge(2,"putdown(F):-on(F,H,Z),ontable(F,Z,table)",["putdown"],[])
     #second layer
     clf = GradientBoosting()
     clf.setTargets(["putdown"])
-    clf.learn(makeKnowledgeFacts = True,knowledgeModels = [knowledge1,knowledge2])
-    clf.infer(knowledgeModels = [knowledge1,knowledge2])
+    clf.learn(makeKnowledgeFacts = True,knowledgeModels = [knowledge1])#,knowledge2])
+    clf.infer(knowledgeModels = [knowledge1])#,knowledge2])
 
 main()
     

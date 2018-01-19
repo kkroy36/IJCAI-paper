@@ -63,6 +63,7 @@ class node(object):
         while len(node.expandQueue) > 0:
             curr = node.expandQueue.pop()
             curr.expandOnBestTest(data)
+        node.learnedDecisionTree = list(set(node.learnedDecisionTree))
         node.learnedDecisionTree.sort(key = len)
         node.learnedDecisionTree = node.learnedDecisionTree[::-1]
         
@@ -95,7 +96,7 @@ class node(object):
             elif curr.pos == "right":
                 clause += ""#"!"+curr.parent.test+","
             curr = curr.parent
-        if self.level == node.maxDepth or round(self.information,1) == 0:
+        if self.level == node.maxDepth or round(self.information,2) == 0:
             if clause[-1]!='-':
                 node.learnedDecisionTree.append(clause[:-1]+" "+str(Utils.getleafValue(self.examples)))
             else:
@@ -147,7 +148,7 @@ class node(object):
             self.right = node(None,bestFExamples,Utils.variance(bestFExamples),self.level+1,self,"right")
             if self.level+1 > node.depth:
                 node.depth = self.level+1
-        if self.test == "" or round(self.information,1) == 0: #if no examples append clause as is
+        if self.test == "" or round(self.information,2) == 0: #if no examples append clause as is
             if clause[-1]!='-':
                 node.learnedDecisionTree.append(clause[:-1])
             else:
